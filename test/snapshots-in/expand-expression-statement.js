@@ -1,0 +1,1 @@
+foo(), this, void bar(), void 0, new baz;
