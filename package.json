@@ -9,6 +9,10 @@
     "url": "https://github.com/shapesecurity/unminify"
   },
   "main": "src/index.js",
+  "files": [
+    "src",
+    "bin"
+  ],
   "bin": "bin/cli.js",
   "scripts": {
     "test": "ava --fail-fast --verbose && npm run lint",
