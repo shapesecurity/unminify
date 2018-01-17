@@ -1,6 +1,6 @@
 {
   "name": "unminify",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Kevin Gibbons <kevin@shapesecurity.com>",
   "description": "reverse many of the transformations applied by minifiers and naïve obfuscators",
   "license": "Apache-2.0",
