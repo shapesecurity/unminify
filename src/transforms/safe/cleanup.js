@@ -261,7 +261,7 @@ class Cleanup extends reducer.LazyCloneReducer {
 
   reduceFunctionBody(node, { directives, statements }) {
     statements = hoistFunctionDeclarations(fixStatementList(statements));
-    if (directives.length === 0 && statements.length === 1 && (statements[0].type === 'ExpressionStatement' || statements[0].type === 'ReturnStatement') && statements[0].expression.type === 'CallExpression' && statements[0].expression.arguments.length === 0) {
+    if (directives.length === 0 && statements.length === 1 && (statements[0].type === 'ExpressionStatement' || statements[0].type === 'ReturnStatement') && statements[0].expression != null && statements[0].expression.type === 'CallExpression' && statements[0].expression.arguments.length === 0) {
       const callee = statements[0].expression.callee;
       if (callee.type === 'FunctionExpression' && callee.name === null && callee.params.items.length === 0 && callee.params.rest === null && !functionContainsWeirdness(callee)) {
         return statements[0].type === 'ExpressionStatement' ? makeReturnsUndefined(callee.body) : callee.body;
