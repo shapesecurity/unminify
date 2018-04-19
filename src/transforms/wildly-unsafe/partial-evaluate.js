@@ -326,25 +326,21 @@ module.exports = function (ast) {
 
     reduceComputedMemberExpression(node, { object, expression }) {
       const clone = super.reduceComputedMemberExpression(node, { object, expression });
-      if (parents.get(node).type !== 'CallExpression') {
-        if (object.type === 'ArrayExpression') {
+      const parent = parents.get(node);
+      if (parent.type !== 'CallExpression' || parent.callee !== node) {
+        if (object.type === 'ArrayExpression' || object.type === 'LiteralStringExpression') {
+          const isArray = object.type === 'ArrayExpression';
           const index = evaluate(expression);
           if (index !== none) {
             if (index === 'length') {
-              return constantToNode(object.elements.length);
+              return constantToNode((isArray ? object.elements : object.value).length);
             }
-            if (!Number.isNaN(+index) && Math.floor(+index) === +index) {
-              return object.elements[index];
-            }
-          }
-        } else if (object.type === 'LiteralStringExpression') {
-          const index = evaluate(expression);
-          if (index !== none) {
-            if (index === 'length') {
-              return constantToNode(object.value.length);
-            }
-            if (!Number.isNaN(+index) && Math.floor(+index) === +index) {
-              return constantToNode(object.value[index]);
+            const coerced = +('' + index);
+            if (!Number.isNaN(coerced) && Math.floor(coerced) === coerced && coerced.toString() === '' + index) {
+              if (coerced >= (isArray ? object.elements : object.value).length) {
+                return constantToNode(void 0);
+              }
+              return isArray ? object.elements[index] : constantToNode(object.value[index]);
             }
           }
         }
