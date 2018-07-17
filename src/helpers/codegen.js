@@ -16,8 +16,6 @@ class FormattedCodeGenWithStrs extends codegen.FormattedCodeGen {
       } else if (code > 0xFF) {
         let hex = code.toString(16).toUpperCase();
         out += '\\u' + '0000'.slice(hex.length) + hex;
-      } else if (code === 0) {
-        out += '\\0';
       } else {
         let hex = code.toString(16).toUpperCase();
         out += '\\x' + '00'.slice(hex.length) + hex;

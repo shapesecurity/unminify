@@ -9,6 +9,7 @@ const TRANSFORMATIONS = {
   [safetyLevels.SAFE]: [
     require('./transforms/safe/cleanup'),
     require('./transforms/safe/cleanup-with-state'),
+    require('./transforms/safe/remove-trivially-dead.js'),
   ],
   [safetyLevels.MOSTLY_SAFE]: [],
   [safetyLevels.UNSAFE]: [

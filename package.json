@@ -33,9 +33,9 @@
     "esutils": "2.0.2",
     "prettier": "1.9.2",
     "shift-ast": "4.0.0",
-    "shift-codegen": "5.0.5",
+    "shift-codegen": "5.1.0",
     "shift-parser": "5.2.3",
-    "shift-reducer": "4.1.0",
+    "shift-reducer": "4.4.0",
     "shift-scope": "3.1.0",
     "shift-spec": "2016.0.0"
   },
