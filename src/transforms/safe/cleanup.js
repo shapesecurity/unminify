@@ -292,9 +292,9 @@ class Cleanup extends reducer.LazyCloneReducer {
     if (['==', '===', '!=', '!=='].includes(node.operator) && isConstant(left) && !isConstant(right)) {
       return new Shift.BinaryExpression({ left: right, operator: node.operator, right: left });
     }
-    if (node.operator === ',' && inlinable.includes(left.type)) {
-      return right;
-    }
+    // if (node.operator === ',' && inlinable.includes(left.type)) { // TODO this is not safe because it changes receiver for (0, eval)(x) and similar
+    //   return right;
+    // }
     return super.reduceBinaryExpression(node, { left, right });
   }
 
