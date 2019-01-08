@@ -20,10 +20,10 @@ const TRANSFORMATIONS = {
   ],
 };
 
-module.exports = function (src, options) {
+function unminifySource(src, options) {
   let tree = parser.parseScript(src);
   return codegen(unminifyTree(tree, options));
-};
+}
 
 function unminifyTree(tree, { safety = safetyLevels.SAFE, additionalTransforms = [] } = {}) {
   let transformations = [];
@@ -46,6 +46,7 @@ function unminifyTree(tree, { safety = safetyLevels.SAFE, additionalTransforms =
   return lastTree;
 }
 
+module.exports = unminifySource;
+module.exports.unminifySource = unminifySource;
 module.exports.unminifyTree = unminifyTree;
-
 module.exports.safetyLevels = safetyLevels;
