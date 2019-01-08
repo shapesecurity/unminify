@@ -20,26 +20,33 @@ const TRANSFORMATIONS = {
   ],
 };
 
-module.exports = function (src, { safety = safetyLevels.SAFE, additionalTransforms = [] } = {}) {
+function unminifySource(src, options) {
   let tree = parser.parseScript(src);
+  return codegen(unminifyTree(tree, options));
+}
 
+function unminifyTree(tree, { safety = safetyLevels.SAFE, additionalTransforms = [] } = {}) {
   let transformations = [];
   for (let i = 0; i <= safety; ++i) {
     transformations.push(...TRANSFORMATIONS[i]);
   }
   transformations.push(...additionalTransforms);
 
+  let lastTree = tree;
   // cap at 100 on general principles, but theoretically `while (true)` should be ok
   for (let i = 0; i < 100; ++i) {
-    let newTree = tree;
+    let newTree = lastTree;
     for (let transformation of transformations) {
       newTree = transformation(newTree);
     }
-    if (newTree === tree) break;
-    tree = newTree;
+    if (newTree === lastTree) break;
+    lastTree = newTree;
   }
 
-  return codegen(tree);
-};
+  return lastTree;
+}
 
+module.exports = unminifySource;
+module.exports.unminifySource = unminifySource;
+module.exports.unminifyTree = unminifyTree;
 module.exports.safetyLevels = safetyLevels;

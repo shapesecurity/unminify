@@ -34,15 +34,27 @@ unminify /path/to/file.js
 ## API Usage
 
 ```js
-let unminify = require('unminify');
+let { unminifySource } = require('unminify');
 let sourceText = '/* a minified/"obfuscated" JavaScript program */';
 console.log(unminify(sourceText));
 
 // or, with options
-console.log(unminify(sourceText, {
+console.log(unminifySource(sourceText, {
   safety: unminify.safetyLevels.UNSAFE,
   additionalTransforms: [function(ast) { /* ... */ }],
 }));
+```
+
+If you already have a Shift tree then you can use `unminifyTree` to avoid the codegen & reparse cost.
+
+```js
+let { parseScript } = require('shift-parser');
+let { unminifyTree } = require('unminify');
+
+let sourceText = '/* a minified/"obfuscated" JavaScript program */';
+
+let tree = parseScript(sourceText);
+let unminifiedTree = unminifyTree(tree);
 ```
 
 ## Safety Levels
