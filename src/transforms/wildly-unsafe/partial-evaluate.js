@@ -31,8 +31,10 @@ function constantToNode(c) {
 
 const globalFunctions = {
   decodeURI,
+  decodeURIComponent,
   unescape,
   parseInt,
+  parseFloat,
 };
 
 const isNonMutatingArrayMethod = p => ['slice', 'forEach', 'map', 'filter', 'reduce', 'indexOf'].includes(p);
