@@ -39,7 +39,7 @@ const globalFunctions = {
 
 const isNonMutatingArrayMethod = p => ['slice', 'forEach', 'map', 'filter', 'reduce', 'indexOf'].includes(p);
 
-module.exports = function (ast) {
+module.exports = function partialEvaluate(ast) {
 
   const parents = getParents(ast);
   const globalScope = shiftScope.default(ast);
@@ -228,6 +228,13 @@ module.exports = function (ast) {
         const argVals = node.arguments.map(evaluate);
         if (argVals.every(v => v !== none)) {
           if (node.callee.type === 'StaticMemberExpression') {
+
+            // TODO factor this and similar cases out to something else
+            if (node.callee.object.type === 'IdentifierExpression' && node.callee.object.name === 'String' && node.callee.property === 'fromCharCode' && node.arguments.length === 1 && node.arguments[0].type === 'LiteralNumericExpression') {
+              return String.fromCharCode(node.arguments[0].value);
+            }
+
+
             const objVal = evaluate(node.callee.object);
             if (objVal !== none) {
               if (typeof objVal !== 'object') {
@@ -263,7 +270,10 @@ module.exports = function (ast) {
     // this interacts poorly with getters
     const objVal = evaluate(object);
     if (objVal !== none && typeof objVal !== 'object' && typeof objVal !== 'function') {
-      return objVal[property];
+      if (property in Object(objVal)) {
+        return objVal[property];
+      }
+      return none;
     }
     if (object.type === 'IdentifierExpression') {
       const { initNode, variable } = getStaticInit(object); // TODO this is not sufficient; we also need to check it doesn't leak
