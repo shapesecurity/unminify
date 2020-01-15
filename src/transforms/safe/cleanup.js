@@ -59,15 +59,17 @@ function isSequence(expr) {
   return expr != null && expr.type === 'BinaryExpression' && expr.operator === ',';
 }
 
-function seqToExprs(expr) {
-  const exprs = [expr.right];
-  let left = expr.left;
-  while (isSequence(left)) {
-    exprs.unshift(left.right);
-    left = left.left;
+// NB: only for use with associative operators
+function binExprToExprs(expr) {
+  const operator = expr.operator;
+  return [...binExprToExprsHelper(expr.left, operator), ...binExprToExprsHelper(expr.right, operator)];
+}
+
+function binExprToExprsHelper(expr, operator) {
+  if (expr.type === 'BinaryExpression' && expr.operator === operator) {
+    return [...binExprToExprsHelper(expr.left, operator), ...binExprToExprsHelper(expr.right, operator)];
   }
-  exprs.unshift(left);
-  return exprs;
+  return [expr];
 }
 
 function declaratorsToDeclarationStatements(kind, declarators) {
@@ -101,6 +103,60 @@ function makeReturnsUndefined(fnBody) {
   return new Shift.FunctionBody({ directives: fnBody.directives, statements: fixed });
 }
 
+let booleanBinOps = ['==', '!=', '===', '!==', '<', '<=', '>', '>=', 'in', 'instanceof'];
+function returnsBoolean(expr) {
+  return expr.type === 'LiteralBooleanExpression'
+    || expr.type === 'UnaryExpression' && expr.operator === '!'
+    || expr.type === 'BinaryExpression' && booleanBinOps.includes(expr.operator)
+    || expr.type === 'BinaryExpression' && (expr.operator === '&&' || expr.operator === '||') && returnsBoolean(expr.left) && returnsBoolean(expr.right)
+    || expr.type === 'BinaryExpression' && expr.operator === ',' && returnsBoolean(expr.right)
+    || expr.type === 'ConditionalExpression' && returnsBoolean(expr.consequent) && returnsBoolean(expr.alternate);
+}
+
+/*
+This function takes an expression like
+
+  a && (b, c, d) && e
+
+and returns an object with three properties:
+
+- prefix, a conjunction of all the clauses before the sequence expression, or `null` if there are none
+- seqs, a list of all expressions in the sequence expression save the last
+- suffix, a conjuction of the last item in the sequence expression with all the clauses after the sequence expression
+
+If the expression is not a conjunction of clauses at least one of which is a sequence, returns `null`.
+
+If `isBooleanContext` is true, it will additionally require that each clause in the prefix returns a boolean.
+
+In this example, assuming `isBooleanContext` is false, it would return
+{
+  prefix: a
+  seqs: [b, c]
+  suffix: d && e
+}
+*/
+function extractSequenceFromConjunction(expr, isBooleanContext) {
+  if (expr.type !== 'BinaryExpression' || expr.operator !== '&&') {
+    return null;
+  }
+  const clauses = binExprToExprs(expr);
+  for (let i = 0; i < clauses.length; ++i) {
+    if (isSequence(clauses[i])) {
+      const seqs = binExprToExprs(clauses[i]);
+      const last = seqs.pop();
+      return {
+        prefix: i === 0 ? null : clauses.slice(0, i).reduce((acc, e) => new Shift.BinaryExpression({ left: acc, operator: '&&', right: e })),
+        seqs,
+        suffix: clauses.slice(i + 1).reduce((acc, e) => new Shift.BinaryExpression({ left: acc, operator: '&&', right: e }), last),
+      };
+    }
+    if (!isBooleanContext && !returnsBoolean(clauses[i])) {
+      break;
+    }
+  }
+  return null;
+}
+
 function fixStatementList(statements) {
   // strip empty statements
   // turn sequence expressions in statement position into multiple statements
@@ -120,7 +176,7 @@ function fixStatementList(statements) {
         break;
       case 'ExpressionStatement':
         if (isSequence(s.expression)) {
-          o.push(...seqToExprs(s.expression).map(e => new Shift.ExpressionStatement({ expression: e })));
+          o.push(...binExprToExprs(s.expression).map(e => new Shift.ExpressionStatement({ expression: e })));
         } else if (inlinable.includes(s.expression.type) || s.expression.type === 'ThisExpression' || s.expression.type === 'FunctionExpression') { // TODO local IdentifierExpressions
           continue;
         } else if (s.expression.type === 'UnaryExpression' && s.expression.operator === 'void') {
@@ -134,7 +190,7 @@ function fixStatementList(statements) {
         break;
       case 'ThrowStatement':
         if (isSequence(s.expression)) {
-          const exprs = seqToExprs(s.expression);
+          const exprs = binExprToExprs(s.expression);
           const last = exprs.pop();
           o.push(...exprs.map(e => new Shift.ExpressionStatement({ expression: e })));
           o.push(new Shift.ThrowStatement({ expression: last }));
@@ -146,7 +202,7 @@ function fixStatementList(statements) {
         if (s.expression === null) {
           o.push(s);
         } else if (isSequence(s.expression)) {
-          const exprs = seqToExprs(s.expression);
+          const exprs = binExprToExprs(s.expression);
           const last = exprs.pop();
           o.push(...exprs.map(e => new Shift.ExpressionStatement({ expression: e })));
           o.push(new Shift.ReturnStatement({ expression: last }));
@@ -154,6 +210,22 @@ function fixStatementList(statements) {
           const consequent = new Shift.ReturnStatement({ expression: s.expression.consequent });
           const alternate = new Shift.ReturnStatement({ expression: s.expression.alternate });
           o.push(new Shift.IfStatement({ test: s.expression.test, consequent, alternate }));
+        } else if (s.expression.type === 'BinaryExpression' && s.expression.operator === '&&') {
+          const extracted = extractSequenceFromConjunction(s.expression, false);
+          if (extracted === null) {
+            o.push(s);
+          } else {
+            const { prefix, seqs, suffix } = extracted;
+            if (prefix !== null) {
+              o.push(new Shift.IfStatement({
+                test: negate(prefix, true),
+                consequent: new Shift.BlockStatement({ block: new Shift.Block({ statements: [new Shift.ReturnStatement({ expression: new Shift.LiteralBooleanExpression({ value: false }) })] }) }),
+                alternate: null,
+              }));
+            }
+            o.push(...seqs.map(e => new Shift.ExpressionStatement({ expression: e })));
+            o.push(new Shift.ReturnStatement({ expression: suffix }));
+          }
         } else if (s.expression.type === 'UnaryExpression' && s.expression.operator === 'void') {
           o.push(new Shift.ExpressionStatement({ expression: s.expression.operand }));
           o.push(new Shift.ReturnStatement({ expression: null }));
@@ -171,10 +243,32 @@ function fixStatementList(statements) {
         break;
       case 'IfStatement':
         if (isSequence(s.test)) {
-          const exprs = seqToExprs(s.test);
+          const exprs = binExprToExprs(s.test);
           const last = exprs.pop();
           o.push(...exprs.map(e => new Shift.ExpressionStatement({ expression: e })));
           o.push(new Shift.IfStatement({ test: last, consequent: s.consequent, alternate: s.alternate }));
+        } else if (s.test.type === 'BinaryExpression' && s.test.operator === '&&' && s.alternate == null) {
+          const extracted = extractSequenceFromConjunction(s.test, true);
+          if (extracted === null) {
+            o.push(s);
+          } else {
+            const { prefix, seqs, suffix } = extracted;
+            let newStatements = seqs.map(e => new Shift.ExpressionStatement({ expression: e }));
+            newStatements.push(new Shift.IfStatement({
+              test: suffix,
+              consequent: s.consequent,
+              alternate: null,
+            }));
+            if (prefix === null) {
+              o.push(...newStatements);
+            } else {
+              o.push(new Shift.IfStatement({
+                test: prefix,
+                consequent: new Shift.BlockStatement({ block: new Shift.Block({ statements: newStatements }) }),
+                alternate: null,
+              }));
+            }
+          }
         } else {
           o.push(s);
         }
@@ -185,7 +279,7 @@ function fixStatementList(statements) {
         } else if (isSequence(s.declaration.declarators[0].init)) {
           let originalDeclarator = s.declaration.declarators[0];
           // Yes, these steps could be combined, but /shrug
-          const exprs = seqToExprs(originalDeclarator.init);
+          const exprs = binExprToExprs(originalDeclarator.init);
           const last = exprs.pop();
           o.push(...exprs.map(e => new Shift.ExpressionStatement({ expression: e })));
           const declarator = new Shift.VariableDeclarator({ binding: originalDeclarator.binding, init: last });
@@ -204,7 +298,7 @@ function fixStatementList(statements) {
             o.push(...declaratorsToDeclarationStatements(s.init.kind, declarators));
             o.push(new Shift.ForStatement({ init: newDeclaration, test: s.test, update: s.update, body: s.body }));
           } else if (isSequence(s.init)) {
-            const exprs = seqToExprs(s.init);
+            const exprs = binExprToExprs(s.init);
             const last = exprs.pop();
             o.push(...exprs.map(e => new Shift.ExpressionStatement({ expression: e })));
             o.push(new Shift.ForStatement({ init: last, test: s.test, update: s.update, body: s.body }));
