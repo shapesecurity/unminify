@@ -15,7 +15,7 @@
   ],
   "bin": "bin/cli.js",
   "scripts": {
-    "test": "ava --fail-fast --verbose && npm run lint",
+    "test": "ava --fail-fast --verbose",
     "update-snapshots": "ava --update-snapshots",
     "lint": "eslint src bin",
     "build": "exit 0"
