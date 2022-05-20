@@ -20,7 +20,7 @@ const safetyLevelMap = {
 };
 
 function format(src) {
-  return prettier.format(src, { singleQuote: true, trailingComma: 'es5' });
+  return prettier.format(src, { parser: 'babel', singleQuote: true, trailingComma: 'es5' });
 }
 
 if (!args.file) {

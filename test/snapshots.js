@@ -7,7 +7,7 @@ const SNAPSHOTS_DIR = `${__dirname}/snapshots-in`;
 const files = fs.readdirSync(SNAPSHOTS_DIR)
 
 function format(src) {
-  return prettier.format(src, { singleQuote: true, trailingComma: 'es5' });
+  return prettier.format(src, { parser: 'babel', singleQuote: true, trailingComma: 'all' });
 }
 
 files.forEach(file => {

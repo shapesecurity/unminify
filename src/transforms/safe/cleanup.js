@@ -42,7 +42,7 @@ function negate(expr, isBooleanContext, requireResult = true) {
       return new Shift.BinaryExpression({ left: expr.left, operator: '===', right: expr.right });
     }
   } else if (expr.type === 'UnaryExpression' && expr.operator === '!' && isBooleanContext) {
-    return new Shift[expr.operand.type](expr.operand);
+    return { ...expr.operand };
   }
   if (!requireResult) {
     return null;

@@ -95,7 +95,7 @@ module.exports = function inline(ast) {
     }
     if (!inlinable.includes(init.type)) return null;
 
-    return new Shift[init.type](init);
+    return { ...init };
   }
 
 
@@ -164,7 +164,7 @@ module.exports = function inline(ast) {
                   if (consequent.type === 'BlockStatement' && consequent.block.statements.length === 1 && consequent.block.statements[0].type === 'ReturnStatement' && alternate.type === 'BlockStatement' && alternate.block.statements.length === 1 && alternate.block.statements[0].type === 'ReturnStatement') {
                     const test = f.body.statements[0].test;
                     if (test.type === 'BinaryExpression' && test.operator.slice(0, 2) === '==' && test.left.type === 'IdentifierExpression' && lookup.lookup(test.left)[0] === pv && inlinable.includes(test.right.type)) {
-                      const conditional = new Shift.ConditionalExpression({ test: new Shift.BinaryExpression(test), consequent: consequent.block.statements[0].expression, alternate: alternate.block.statements[0].expression });
+                      const conditional = new Shift.ConditionalExpression({ test: { ...test }, consequent: consequent.block.statements[0].expression, alternate: alternate.block.statements[0].expression });
                       if (_arguments.length === 1) {
                         conditional.test.left = _arguments[0];
                       } else {
@@ -222,7 +222,7 @@ module.exports = function inline(ast) {
           if (obj !== null && obj.has(node.property)) {
             const val = obj.get(node.property);
             if (inlinable.includes(val.type)) {
-              return new Shift[val.type](val);
+              return { ...val };
             }
           }
         }

@@ -30,18 +30,18 @@
     "failWithoutAssertions": false
   },
   "dependencies": {
-    "command-line-args": "4.0.7",
-    "esutils": "2.0.2",
-    "prettier": "1.9.2",
-    "shift-ast": "4.0.0",
-    "shift-codegen": "5.0.5",
-    "shift-parser": "5.2.3",
-    "shift-reducer": "4.1.0",
-    "shift-scope": "3.1.0",
-    "shift-spec": "2016.0.0"
+    "command-line-args": "5.2.1",
+    "esutils": "2.0.3",
+    "prettier": "2.6.2",
+    "shift-ast": "7.0.0",
+    "shift-codegen": "8.0.0",
+    "shift-parser": "8.0.0",
+    "shift-reducer": "7.0.0",
+    "shift-scope": "6.0.0",
+    "shift-spec": "2019.0.0"
   },
   "devDependencies": {
-    "ava": "0.24.0",
-    "eslint": "4.14.0"
+    "ava": "4.2.0",
+    "eslint": "8.15.0"
   }
 }
