@@ -3,7 +3,7 @@
 // Give a map from a node to its parents.
 
 const reducer = require('shift-reducer');
-const spec = require('shift-spec').default;
+const spec = require('shift-spec');
 
 
 class ParentFinder {
@@ -29,6 +29,7 @@ for (const typeName in spec) {
     }
   };
 }
+
 ParentFinder.prototype.originalReduceScript = ParentFinder.prototype.reduceScript;
 ParentFinder.prototype.originalReduceModule = ParentFinder.prototype.reduceModule;
 ParentFinder.prototype.reduceScript = function (node) {

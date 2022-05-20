@@ -120,7 +120,7 @@ module.exports = function cleanupWithState(ast) {
             for (; i < _arguments.length; ++i) {
               newInit.push(new Shift.ExpressionStatement({ expression: _arguments[i] }));
             }
-            const fn = new Shift.FunctionExpression({ name: callee.name, isGenerator: false, params: new Shift.FormalParameters({ items: [], rest: null }), body: new Shift.FunctionBody({
+            const fn = new Shift.FunctionExpression({ name: callee.name, isGenerator: false, isAsync: false, params: new Shift.FormalParameters({ items: [], rest: null }), body: new Shift.FunctionBody({
               directives: [],
               statements: newInit.concat(callee.body.statements),
             }) });
@@ -135,9 +135,7 @@ module.exports = function cleanupWithState(ast) {
 
   class NameCollector extends reducer.MonoidalReducer {
     constructor() {
-      super({ empty: () => [], concat(o) {
-        return this.concat(o);
-      } });
+      super({ empty: () => [], concat: (a, b) => a.concat(b) });
     }
 
     reduceIdentifierExpression(node) {
